@@ -13,9 +13,19 @@ public class SleeperTest {
     public void sequentialSleep(){
         long time = Timer.time(new Runnable(){
             public void run(){
-                Sleeper.sleepAsynchronous(101, 2);
+                Sleeper.sleepAsynchronous(1000, 100);
             }
         });
-        assertTrue(time < 200);
+        assertTrue(time < 1100);
+    }
+    @Test
+    public void countSheepSleep(){
+        long time = Timer.time(new Runnable(){
+            public void run(){
+                Sleeper.countSleepAsynchronous(1000, 100);
+            }
+        });
+        assertTrue(time > 1100);
+        assertTrue(time < 5000);
     }
 }

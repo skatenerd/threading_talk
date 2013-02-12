@@ -49,9 +49,111 @@ public class TransposerTest {
         assertTrue(mockFlip.isFlipped());
     }
 
+
+    @Test
+    public void poolTranspose(){
+        MockTransposable mockFlip = new MockTransposable();
+        List<Transposable> toTranspose = new LinkedList<Transposable>();
+        toTranspose.add(mockFlip);
+
+
+        Transposer doer = new Transposer(toTranspose);
+        doer.poolTranspose();
+
+        assertTrue(mockFlip.isFlipped());
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     @Test
     public void bigMatrixFewMatrices(){
         final List<Transposable> toTranspose  = Matrix.randomlyPopulateManyFloats(200, 20);
+
+        long asyncTime = Timer.time(new Runnable(){
+            public void run(){
+                new Transposer(toTranspose).asyncTransposeAll();
+            }
+        });
+        long sequentialTime = Timer.time(new Runnable(){
+            public void run(){new Transposer(toTranspose).sequentialTransposeAll();
+            }
+        });
+        long poolTime = Timer.time(new Runnable() {
+            public void run() {
+                new Transposer(toTranspose).poolTranspose();
+            }
+        });
+
+//        System.out.println("Sequential time: " + sequentialTime);
+//        System.out.println("Thread per matrix: " + asyncTime);
+//        System.out.println("Thread pool: " + poolTime);
+
+        assertTrue(poolTime <= asyncTime);
+        assertTrue(asyncTime <= sequentialTime);
+    }
+
+    @Test
+    public void mediumMatrixManyMatrices(){
+        final List<Transposable> toTranspose  = Matrix.randomlyPopulateManyFloats(100, 200);
+
+        long asyncTime = Timer.time(new Runnable(){
+            public void run(){
+                new Transposer(toTranspose).asyncTransposeAll();
+            }
+        });
+        long sequentialTime = Timer.time(new Runnable(){
+            public void run(){
+         new Transposer(toTranspose).sequentialTransposeAll();
+            }
+        });
+        long poolTime = Timer.time(new Runnable() {
+            public void run() {
+                new Transposer(toTranspose).poolTranspose();
+            }
+        });
+
+//        System.out.println("Sequential time: " + sequentialTime);
+//        System.out.println("Thread per matrix: " + asyncTime);
+//        System.out.println("Thread pool: " + poolTime);
+
+        assertTrue(poolTime <= sequentialTime);
+        assertTrue(asyncTime >= sequentialTime);
+    }
+
+
+    @Test
+    public void smallMatrixManyrMatrices(){
+        final List<Transposable> toTranspose  = Matrix.randomlyPopulateManyFloats(10, 5000);
 
         long asyncTime = Timer.time(new Runnable(){
             public void run(){
@@ -69,31 +171,18 @@ public class TransposerTest {
             }
         });
 
-//        System.out.println(asyncTime);
-//        System.out.println(sequentialTime);
-//        System.out.println(poolTime);
+//        System.out.println("Sequential time: " + sequentialTime);
+//        System.out.println("Thread per matrix: " + asyncTime);
+//        System.out.println("Thread pool: " + poolTime);
 
-
-//        assertTrue(poolTime <= asyncTime);
-//        assertTrue(asyncTime <= sequentialTime);
+        assertTrue(sequentialTime <= poolTime);
+        assertTrue(sequentialTime <= asyncTime);
     }
 
+
     @Test
-    public void pool(){
-        MockTransposable mockFlip = new MockTransposable();
-        List<Transposable> toTranspose = new LinkedList<Transposable>();
-        toTranspose.add(mockFlip);
-
-
-        Transposer doer = new Transposer(toTranspose);
-        doer.poolTranspose();
-
-        assertTrue(mockFlip.isFlipped());
-
-    }
-    @Test
-    public void conflicts() throws InterruptedException{
-        final CoordinateMatrix foo = CoordinateMatrix.SelfDescribing(100);
+    public void conflictsFun() throws InterruptedException{
+        final CoordinateMatrix matrix = CoordinateMatrix.SelfDescribing(100);
         int nthreads = 50;
         final CountDownLatch latch = new CountDownLatch(nthreads);
         final CountDownLatch allDoneLatch = new CountDownLatch(nthreads);
@@ -103,7 +192,7 @@ public class TransposerTest {
                     try{
                         latch.countDown();
                         latch.await();
-                        foo.transpose();
+                        matrix.transpose();
                         allDoneLatch.countDown();
                     }
                     catch(InterruptedException e){
@@ -112,16 +201,24 @@ public class TransposerTest {
                 }
             }.start();
         allDoneLatch.await();
-        for (Integer[] whack:foo.nonSelfDescribingCoordinates()){
 
-            System.out.println(Arrays.toString(whack));
-            System.out.println(Arrays.toString(foo.dataAt(whack[0],whack[1])));
-            if (Arrays.equals(whack, foo.dataAt(whack[0],whack[1]))){
-                System.out.println("SAME");
-            }
-            System.out.println("----------");
+
+
+
+
+
+        for (Integer[] violationPoint:matrix.nonSelfDescribingCoordinates()){
+            Integer [] dataAtViolationPoint = matrix.dataAt(violationPoint);
+//            System.out.println("Point in bad state:     " + Arrays.toString(violationPoint));
+//            System.out.println("Data at bad-state point:" + Arrays.toString(dataAtViolationPoint));
+////            if (!matrix.dataUnexpected(violationPoint)){
+////                System.out.println("SAME!!");
+////            }
+//
+//            System.out.println("--------------");
         }
-        System.out.println(foo.nonSelfDescribingCoordinates().size());
+        System.out.println("Number of non-self-describing coordinates is:" + matrix.nonSelfDescribingCoordinates().size());
+        //System.out.println(matrix.nonSelfDescribingCoordinates().size());
 
     }
 }

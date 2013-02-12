@@ -27,4 +27,33 @@ public class Sleeper{
             }
         }catch(InterruptedException e){}
     }
+
+    public static void countSleepAsynchronous(final int maxCount, int times){
+        try{
+            List<Thread> threads = new ArrayList<Thread>();
+            for(int i = 0; i < times; i++){
+                Thread t = new Thread(new Runnable(){
+                    public void run(){
+                        try{
+                            countSheep(maxCount);
+                        }catch(Exception e){}
+                    }
+                });
+                t.start();
+                threads.add(t);
+            }
+            for(Thread t:threads){
+                t.join();
+            }
+        }catch(InterruptedException e){}
+    }
+
+    private static void countSheep(long miliseconds){
+        long start = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
+
+        while((now - start) < miliseconds){
+            now = System.currentTimeMillis();
+        }
+    }
 }

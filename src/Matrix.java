@@ -1,6 +1,9 @@
 import sun.tools.tree.NewArrayExpression;
 
+import java.awt.*;
 import java.util.*;
+import java.util.List;
+
 /**
  * Created with IntelliJ IDEA.
  * User: 8thlight
@@ -17,9 +20,13 @@ import java.util.*;
     public T dataAt(int row, int col){
         return data[row][col];
     }
+    public T dataAt(Point p){
+        return data[p.x][p.y];
+    }
 
-    public synchronized void transpose(){
+    public void transpose(){
         int max = data.length - 1;
+        try{
         for(int i=0; i <= max; i++){
             int maxcol = i / 2;
             for(int j=0; j<= maxcol; j++){
@@ -29,7 +36,7 @@ import java.util.*;
 
             }
         }
-
+        }catch(Exception e){}
     }
 
     public static List<Transposable> randomlyPopulateManyFloats(int size, int quantity){

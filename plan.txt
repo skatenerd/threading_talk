@@ -1,0 +1,17 @@
+How many of you are fans of using an in-memory data store?
+Cool.  This talk applies to you.  See if you can figure out why and we'll discuss at the end.
+
+Start with an example.  Let's say you have a program that you want to speed up.  Part of the program ransposes matrices.  Maybe you can speed it up.  You try sequential processing, naive threading, and thread pool usage.
+
+If your program has 20 huge matrices (200x200).  Do you think you can speed this up with threading?
+
+Example.
+
+As we decrease the size and increase the number of matrices, the win from threading goes away.
+
+--------------------------------------------------------------
+Takeaway 1:  You can actually write slower code using threads if you're not careful!
+
+Takeaway 2:  Don't couple yourself to implementation details.  If you decouple the work and the scheduling, you can respond to performance-altering changes in input!
+--------------------------------------------------------------
+
