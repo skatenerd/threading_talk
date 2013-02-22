@@ -1,7 +1,199 @@
-How many of you are fans of using an in-memory data store?
-Cool.  This talk applies to you.  See if you can figure out why and we'll discuss at the end.
 
-Start with an example.  Let's say you have a program that you want to speed up.  Part of the program ransposes matrices.  Maybe you can speed it up.  You try sequential processing, naive threading, and thread pool usage.
+I'm going to run the test suite for Credence, an internal project at eighth light.  It takes one second.
+
+Now I am going to start playing a song by Atmosphere and run the test suite.  One second again.  What the hell.  Why doesn't it go
+faster when I wasn't listening to music?
+
+I am not going to try to explain in great detail how this happens.  In brief: There are multiple processes running.  The machine
+is, in a sense performing the song task and the testing task in parallel.
+
+
+You should be wondering even if you basically know the answer, why couldn't I run the first and second halves of the test suite in
+parallel?  The song and the suite can work in parallel so why can't both halves of the suite.  Doesn't this make you angry?  What
+if your test suite takes five minutes?  Shouldn't you be able to run it in three?  in one?  
+
+When you write software, you can leverage your computer's ability to parallelize tasks to get serious performance improvements.
+There are a number of ways to do this (decomposing your application into service, using multiple processes, multiple threads).
+
+Today I want to talk about using Threads to leverage parallelism.  I have read and heard a lot of discussion about whether this is
+a good idea.
+
+
+I want to argue that none of these positions is entirely accurate.  I want you to have an idea of:
+
+SLIDE: 1:  "writing THREAD SAFE code is easy, you just don't touch class variables" 2: THE TRUTH 3:  "Multi threaded code is
+dangerous to your health" (edgeoftheearth.com) 3: "Threads are just too difficult for normal, real-world programmers. They
+introduce too many opportunities for developers to introduce obscure bugs which are hard to reproduce, hard to find, and hard to
+fix. It requires an expert programmer to work with them safely. Therefore, "normal" developers (those not developing servers or
+application frameworks) should be discouraged or prohibited from using threads."
+
+SLIDE: 1: where do these crazy opinions come from 2: how do you parallelize a part of your application without destroying it
+
+So, step one is:
+
+SLIDE: What new things can go wrong in a multi threaded program?
+
+plenty can go wrong in regular OOP.
+
+
+If you tried to find out how to write thread safe code, and you looked up thread safety, you would find this:
+
+
+SLIDE: Thread safety is a computer programming concept applicable in the context of multi-threaded programs. A piece of code is
+thread-safe if it only manipulates shared data structures in a manner that guarantees safe execution by multiple threads at the
+same time. There are various strategies for making thread-safe data structures.
+
+What the fuck does this mean?  I want to show you the types of mistakes you make when writing // applications.
+
+
+
+
+
+I'm going to try to take a test-based approach to discussing these threading issues, to show you how you can (and sometimes
+cannot) illustrate thread safety through tests.  This is fortunately a time where it is meaningful and beneficial to use
+generative testing
+
+======= MIGHT NOT BE FASTER ======================================================================
+You might not actually sped up
+your application.
+
+SLIDE: It might not be faster
+
+
+
+Suppose you have a high-throughput application that transposes a bunch of matrices.  The transposition is slow, and you would like
+to speed it up.
+
+
+SLIDE: MATRIX -> MATRIX (transposition)
+
+You decide on a naive approach.  One thread per thing.  This should be easy!  There are no shared resources, and this should go
+smoothly!
+
+Oh, wait.  This is super slow.  Must be too many threads.
+
+Try a "thread pool" that intelligently allocates threads.
+  Explain thread pool
+  Oh, wait, too slow again.
+
+It turns out that there is very little *computation*, and this is almost all RAM access.
+
+Interestingly, we can tune the matrix size to make the thread-pool version faster.  I suspect that performance increases have to
+do with matrix elements getting cached on individual cores.
+
+SLIDE: 
+Action Items: 
+  Test for performance
+  Decouple workflow from thread scheduling.
+
+
+======= /MIGHT NOT BE FASTER ======================================================================
+
+
+======= CHECK THEN ACT ============================================================================
+Let's move to a more canonical example of "thread safety"
+
+here is the canonical "Check then act" threading problem.  This could be used as the hit counter for a website or a counter that
+tracks how many times a product has been viewed.
+
+I want to TAKE A POLL.  If I run this, what will the counter get to?  2000?  1000? 1500?
+
+Run it FIVE TIMES!!!
+
+Why does this happen?  Here is what the code should look like to you:  "read, SLEEP RAND, read, SLEEP RAND".
+
+
+
+
+SAME Slide: "Pitfall:  Testing to illustrate thread safety is hard!" Discuss how it's HARD to illustrate lack of thread saftey.
+Need LATCHES.
+
+What is "unsafe" about this?  We get a Lost Update.  If this isn't a problem, then I don't care.
+
+SLIDE: How do we make this thread-safe?  1.  Synchronization 2.  Client-side locking
+
+Synchronization is straightforward.  You risk hurting performance if critical sections are too large.
+
+What if I wanted to have more control over the transaction.  What if sometimes I add 1, but sometimes I subtract or do other math.
+I could keep adding functions, but if I wanted more generic behavior, I might pass a function in, or introduce *client-side
+locking*.
+
+
+What would client-side locking look like?  this is very free-ing!  We can have multiple clients interacting with the data richly.
+
+What can go wrong with client-side locking?  5 SECONDS
+
+You can forget to use it!
+
+
+======= /CHECK THEN ACT ======================================================================
+
+
+
+======= VISIBILITY ======================================================================
+
+
+
+let's jump in with a classic example of thread-unsafe code.  If I sleep too long, it blows up.  If I sleep and cancel in the nick
+of time, I save the world.
+
+According to the JVM Spec, this is not guaranteed to work!  In fact, the counting thread is not guaranteed to *EVER* see the
+change to "closed".  No matter how hard I try to expose it with a test, I can't break it.  This is bad.  I have to reason if I
+want to see that this code is thread unsafe.
+
+I try repeatedly waiting until the last minute.  I try cancelling it from a third thread.
+
+SLIDE: What is thread-unsafe about this?
+
+SLIDE: How do we fix it?  1.  volatile variable 2.  locking
+
+Slide: "Pitfall:  Testing to illustrate thread safety is hard!"
+
+======= /VISIBILITY ======================================================================
+
+======= ENCAPSULATION ======================================================================
+Let's look at another way visibility
+can bite you.
+
+What can go wrong here?  Other people can modify the employee after you publish it.
+
+
+SLIDE: How do we fix it?  1:  publish immutable employees 2:  publish clones of employees 3:  volatile employee class 4:  (troll)
+client-lock every time
+
+SLIDE: How is this different (worse) than normal OOP?
+
+FIVE SECONDS
+
+SLIDE: ENCAPSULATION ENCAPSULATE IT
+
+encapsulation is More Important, so you avoid having to make more of your program thread-aware.
+
+It would be terrible to have to do option 4
+
+======= /ENCAPSULATION ======================================================================
+
+
+
+======= CONCLUSION ======================================================================
+
+in other words, good programming practices are Extra Important when it comes to doing this shit.
+
+Thread Safety means Whatever You Want it to mean!  It means that the invariants in your code don't break.
+
+======= CONCLUSION ======================================================================
+
+
+
+
+
+
+
+
+---------------------------------------------------------------------------------------------------
+
+MATRIX SECTION: Let's say you have a program that you want to speed up.  Part of the program ransposes matrices.  Maybe you can
+speed it up.  You try sequential processing, naive threading, and thread pool usage.
 
 If your program has 20 huge matrices (200x200).  Do you think you can speed this up with threading?
 
@@ -9,9 +201,39 @@ Example.
 
 As we decrease the size and increase the number of matrices, the win from threading goes away.
 
---------------------------------------------------------------
-Takeaway 1:  You can actually write slower code using threads if you're not careful!
+-------------------------------------------------------------- Takeaway 1:  You can actually write slower code using threads if
+you're not careful!
 
-Takeaway 2:  Don't couple yourself to implementation details.  If you decouple the work and the scheduling, you can respond to performance-altering changes in input!
---------------------------------------------------------------
+Takeaway 2:  Don't couple yourself to implementation details.  If you decouple the work and the scheduling, you can respond to
+performance-altering changes in input!  --------------------------------------------------------------
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+How many of you are fans of using an in-memory data store?  Cool.  This talk applies to you.  See if you can figure out why and
+we'll discuss at the end.

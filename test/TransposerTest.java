@@ -18,6 +18,85 @@ import static org.junit.Assert.*;
  * To change this template use File | Settings | File Templates.
  */
 public class TransposerTest {
+    @Test
+    public void manySmallMatricesNaive(){
+        final List<Transposable> toTranspose  = Matrix.randomlyPopulateManyFloats(10, 5000);
+
+        long asyncTime = Timer.time(new Runnable(){
+            public void run(){
+                new Transposer(toTranspose).asyncTransposeAll();
+            }
+        });
+        long sequentialTime = Timer.time(new Runnable(){
+            public void run(){
+                new Transposer(toTranspose).sequentialTransposeAll();
+            }
+        });
+
+        System.out.println("Sequential time: " + sequentialTime);
+        System.out.println("Thread per matrix: " + asyncTime);
+
+        assertTrue(sequentialTime <= asyncTime);
+    }
+
+
+
+
+
+
+
+    @Test
+    public void manySmallMatricesThreadPool(){
+        final List<Transposable> toTranspose  = Matrix.randomlyPopulateManyFloats(10, 5000);
+
+        long asyncTime = Timer.time(new Runnable(){
+            public void run(){
+                new Transposer(toTranspose).asyncTransposeAll();
+            }
+        });
+        long sequentialTime = Timer.time(new Runnable(){
+            public void run(){
+                new Transposer(toTranspose).sequentialTransposeAll();
+            }
+        });
+        long poolTime = Timer.time(new Runnable() {
+            public void run() {
+                new Transposer(toTranspose).poolTranspose();
+            }
+        });
+
+        System.out.println("Sequential time: " + sequentialTime);
+        System.out.println("Thread per matrix: " + asyncTime);
+        System.out.println("Thread pool: " + poolTime);
+
+        assertTrue(sequentialTime <= poolTime);
+        assertTrue(sequentialTime <= asyncTime);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     private class MockTransposable implements Transposable {
         boolean flipped = false;
         public void transpose(){
@@ -114,9 +193,9 @@ public class TransposerTest {
             }
         });
 
-//        System.out.println("Sequential time: " + sequentialTime);
-//        System.out.println("Thread per matrix: " + asyncTime);
-//        System.out.println("Thread pool: " + poolTime);
+        System.out.println("Sequential time: " + sequentialTime);
+        System.out.println("Thread per matrix: " + asyncTime);
+        System.out.println("Thread pool: " + poolTime);
 
         assertTrue(poolTime <= asyncTime);
         assertTrue(asyncTime <= sequentialTime);
@@ -142,42 +221,15 @@ public class TransposerTest {
             }
         });
 
-//        System.out.println("Sequential time: " + sequentialTime);
-//        System.out.println("Thread per matrix: " + asyncTime);
-//        System.out.println("Thread pool: " + poolTime);
+        System.out.println("Sequential time: " + sequentialTime);
+        System.out.println("Thread per matrix: " + asyncTime);
+        System.out.println("Thread pool: " + poolTime);
 
         assertTrue(poolTime <= sequentialTime);
         assertTrue(asyncTime >= sequentialTime);
     }
 
 
-    @Test
-    public void smallMatrixManyrMatrices(){
-        final List<Transposable> toTranspose  = Matrix.randomlyPopulateManyFloats(10, 5000);
-
-        long asyncTime = Timer.time(new Runnable(){
-            public void run(){
-                new Transposer(toTranspose).asyncTransposeAll();
-            }
-        });
-        long sequentialTime = Timer.time(new Runnable(){
-            public void run(){
-                new Transposer(toTranspose).sequentialTransposeAll();
-            }
-        });
-        long poolTime = Timer.time(new Runnable() {
-            public void run() {
-                new Transposer(toTranspose).poolTranspose();
-            }
-        });
-
-//        System.out.println("Sequential time: " + sequentialTime);
-//        System.out.println("Thread per matrix: " + asyncTime);
-//        System.out.println("Thread pool: " + poolTime);
-
-        assertTrue(sequentialTime <= poolTime);
-        assertTrue(sequentialTime <= asyncTime);
-    }
 
 
     @Test
